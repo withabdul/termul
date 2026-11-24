@@ -109,5 +109,5 @@ export function useAcpMcp(): void {
     } else {
       setTimeout(runPass, 1_000)
     }
-  }, [mcpServersLoaded, mcpServers, probeMcpServer])
+  }, [mcpServersLoaded, mcpServers, mcpProjectOverrides, probeMcpServer])
 }

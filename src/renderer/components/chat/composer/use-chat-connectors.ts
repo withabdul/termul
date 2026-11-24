@@ -34,9 +34,7 @@ export function useChatConnectors(session: AcpSession): {
     () => resolveMcpServersForProject(rawMcpServers, mcpProjectOverrides, session.projectId),
     [rawMcpServers, mcpProjectOverrides, session.projectId]
   )
-  const projectOverrides = session.projectId
-    ? mcpProjectOverrides?.[session.projectId]
-    : undefined
+  const projectOverrides = session.projectId ? mcpProjectOverrides?.[session.projectId] : undefined
   // A chat with no recorded fingerprint (reopened from history) may be
   // stale, so it keeps offering the reload. Not memoized: a reload records
   // the fingerprint outside the store, and the reload state change re-renders.

@@ -254,7 +254,8 @@ export function ChatInputBar({
   const { skills: availableSkills } = useAgentSkills(projectRoot ?? session.cwd)
   const disabledSkills = useSkillsSettingsStore((s) => s.disabledSkills)
   const disabledSkillNames = useMemo(
-    () => partitionSkillsByEnabled(availableSkills, disabledSkills, session.projectId).disabledNames,
+    () =>
+      partitionSkillsByEnabled(availableSkills, disabledSkills, session.projectId).disabledNames,
     [availableSkills, disabledSkills, session.projectId]
   )
   const sessionUsage = useSessionUsage(session.id)

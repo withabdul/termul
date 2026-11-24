@@ -64,9 +64,7 @@ function SkillRows({
         return (
           <SettingsRow
             key={`${skill.scope}:${skill.name}`}
-            label={
-              <span className={cn(!enabled && 'text-muted-foreground')}>{skill.name}</span>
-            }
+            label={<span className={cn(!enabled && 'text-muted-foreground')}>{skill.name}</span>}
             description={skill.description || undefined}
             layout="inline"
           >

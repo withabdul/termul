@@ -108,7 +108,9 @@ export function ProjectMcpServersSection({
             {servers.map((server) => {
               const globalEnabled = server.enabled !== false
               const hasOverride = server.id in projectOverrides
-              const effectiveEnabled = hasOverride ? Boolean(projectOverrides[server.id]) : globalEnabled
+              const effectiveEnabled = hasOverride
+                ? Boolean(projectOverrides[server.id])
+                : globalEnabled
               const status: { tone: StatusTone; label: string } = effectiveEnabled
                 ? { tone: 'success', label: 'On' }
                 : { tone: 'muted', label: 'Off' }

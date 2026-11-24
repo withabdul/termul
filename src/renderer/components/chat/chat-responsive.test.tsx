@@ -19,17 +19,13 @@ import { CHAT_GUTTER_X, NARROW_PANE_PX, STATUS_RAIL_GUTTER_X } from './chat-layo
 import type { TimelineItem } from './chat-timeline'
 import { PlanPanel } from './PlanPanel'
 
-const {
-  mockMcpCount,
-  mockSetMcpServerEnabled,
-  mockSetProjectMcpServerOverride,
-  mockLoadMcpTools
-} = vi.hoisted(() => ({
-  mockMcpCount: { current: 2 },
-  mockSetMcpServerEnabled: vi.fn(async () => {}),
-  mockSetProjectMcpServerOverride: vi.fn(async () => {}),
-  mockLoadMcpTools: vi.fn(async () => {})
-}))
+const { mockMcpCount, mockSetMcpServerEnabled, mockSetProjectMcpServerOverride, mockLoadMcpTools } =
+  vi.hoisted(() => ({
+    mockMcpCount: { current: 2 },
+    mockSetMcpServerEnabled: vi.fn(async () => {}),
+    mockSetProjectMcpServerOverride: vi.fn(async () => {}),
+    mockLoadMcpTools: vi.fn(async () => {})
+  }))
 
 vi.mock('@/hooks/use-agent-skills', () => ({
   useAgentSkills: () => ({ skills: [] }),

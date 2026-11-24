@@ -355,14 +355,12 @@ describe('MCP project overrides helpers', () => {
     ]
     const overrides = { p1: { stdio: false, docs: true } }
 
-    expect(resolveMcpServersForProject(withDisabled, overrides, 'p1').map((s) => s.enabled)).toEqual([
-      false,
-      true
-    ])
-    expect(resolveMcpServersForProject(withDisabled, overrides, 'p2').map((s) => s.enabled)).toEqual([
-      true,
-      false
-    ])
+    expect(
+      resolveMcpServersForProject(withDisabled, overrides, 'p1').map((s) => s.enabled)
+    ).toEqual([false, true])
+    expect(
+      resolveMcpServersForProject(withDisabled, overrides, 'p2').map((s) => s.enabled)
+    ).toEqual([true, false])
     expect(selectMcpServersForAgent(withDisabled, null, overrides.p1).servers).toEqual([
       { type: 'stdio', name: 'Docs', command: 'uvx', args: [], env: [] }
     ])

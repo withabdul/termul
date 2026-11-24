@@ -4,7 +4,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const host = vi.hoisted(() => ({
   store: new Map<string, unknown>(),
   watchers: new Map<string, Array<(change: { exists: boolean; data?: unknown }) => void>>(),
-  writeImpl: null as null | ((key: string, value: unknown) => Promise<{ success: boolean; data?: undefined; error?: string }>)
+  writeImpl: null as
+    | null
+    | ((
+        key: string,
+        value: unknown
+      ) => Promise<{ success: boolean; data?: undefined; error?: string }>)
 }))
 
 vi.mock('@/lib/log-api', () => ({
@@ -84,7 +89,9 @@ describe('skills-settings-store', () => {
       .getState()
       .setSkillEnabled('global', 'review', false)
 
-    expect(useSkillsSettingsStore.getState().disabledSkills.global).toEqual(['review'])
+    await vi.waitFor(() => {
+      expect(useSkillsSettingsStore.getState().disabledSkills.global).toEqual(['review'])
+    })
     rejectWrite(new Error('disk full'))
     await expect(togglePromise).rejects.toThrow('disk full')
     expect(useSkillsSettingsStore.getState().disabledSkills.global).toEqual([])
@@ -106,9 +113,7 @@ describe('skills-settings-store', () => {
     }
 
     const first = useSkillsSettingsStore.getState().setSkillEnabled('global', 'alpha', false)
-    const second = useSkillsSettingsStore
-      .getState()
-      .setSkillEnabled('project', 'beta', false, 'p1')
+    const second = useSkillsSettingsStore.getState().setSkillEnabled('project', 'beta', false, 'p1')
 
     await new Promise<void>((resolve) => setTimeout(resolve, 0))
     releaseFirst()

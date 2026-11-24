@@ -162,9 +162,9 @@ describe('per-project MCP server overrides', () => {
     )
 
     // Session B stays current when Project A changes, and Session A becomes stale when Project A changes.
-    expect(registryMcpServersAreCurrent(useAcpStore.getState(), sessionB, 'agent-1', 'proj-b')).toBe(
-      true
-    )
+    expect(
+      registryMcpServersAreCurrent(useAcpStore.getState(), sessionB, 'agent-1', 'proj-b')
+    ).toBe(true)
     await useAcpStore.getState().setProjectMcpServerOverride('proj-a', 'files', true)
     expect(
       registryMcpServersMatch(
@@ -174,9 +174,9 @@ describe('per-project MCP server overrides', () => {
         useAcpStore.getState().mcpProjectOverrides['proj-a']
       )
     ).toBe(false)
-    expect(registryMcpServersAreCurrent(useAcpStore.getState(), sessionB, 'agent-1', 'proj-b')).toBe(
-      true
-    )
+    expect(
+      registryMcpServersAreCurrent(useAcpStore.getState(), sessionB, 'agent-1', 'proj-b')
+    ).toBe(true)
   })
 
   it('prunes overrides for deleted MCP servers and syncs remote override updates', async () => {

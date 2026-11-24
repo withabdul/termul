@@ -33,9 +33,7 @@ function runSerializedSkillsMutation<T>(mutation: () => Promise<T>): Promise<T> 
 
 let sharedSyncCleanup: (() => void) | null = null
 
-function startSharedDisabledSkillsSync(
-  set: (partial: Partial<SkillsSettingsState>) => void
-): void {
+function startSharedDisabledSkillsSync(set: (partial: Partial<SkillsSettingsState>) => void): void {
   if (sharedSyncCleanup) return
   sharedSyncCleanup = syncSharedKey<unknown>(PersistenceKeys.disabledSkills, (change) => {
     const next = change.exists ? normalizeDisabledSkills(change.data) : EMPTY_DISABLED_SKILLS
