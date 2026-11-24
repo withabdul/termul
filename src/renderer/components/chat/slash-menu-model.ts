@@ -66,6 +66,9 @@ export interface SlashMenuInput {
   configOptions: SessionConfigOption[]
   modes: SessionModeState | null
   skills?: AgentSkillSummary[]
+  /** Skill names disabled in Troupe settings: hidden from the menu while still
+   * suppressing duplicate harness commands (`<name>` and `skill:<name>`). */
+  disabledSkillNames?: ReadonlySet<string>
   /** The text after the leading `/`, used to filter. */
   filter: string
 }
@@ -123,7 +126,7 @@ function commandNamesInstalledSkill(commandName: string, skillNames: Set<string>
  * When it is empty, a single legacy Modes section is emitted if modes exist.
  */
 export function buildSlashSections(input: SlashMenuInput): SlashSection[] {
-  const { commands, configOptions, modes, skills = [], filter } = input
+  const { commands, configOptions, modes, skills = [], disabledSkillNames, filter } = input
   const sections: SlashSection[] = []
 
   // First-wins dedupe for promoted singleton categories (#444): a duplicate
@@ -131,13 +134,21 @@ export function buildSlashSections(input: SlashMenuInput): SlashSection[] {
   // "Model" section next to the promoted chip's section.
   const dedupedConfigOptions = dropDuplicateSingletonConfigOptions(configOptions)
 
-  // The text filter runs after the skill/command dedupe. An installed skill
-  // hides its harness command even when the current filter hides the skill
-  // row, so the same skill cannot come back as a command.
-  const installedSkillNames = new Set(
-    skills.map((skill) => skillKey(skill.name)).filter((name) => name.length > 0)
+  const normalizedDisabled = new Set(
+    Array.from(disabledSkillNames ?? [], skillKey).filter((name) => name.length > 0)
   )
-  const visibleSkills = skills.filter((s) => matches(filter, s.name, s.description))
+
+  // The text filter runs after the skill/command dedupe. An installed skill
+  // (even when disabled in Troupe settings) hides its harness command even when
+  // the current filter hides the skill row, so the same skill cannot come back
+  // as a command.
+  const installedSkillNames = new Set([
+    ...skills.map((skill) => skillKey(skill.name)).filter((name) => name.length > 0),
+    ...normalizedDisabled
+  ])
+  const visibleSkills = skills.filter(
+    (s) => !normalizedDisabled.has(skillKey(s.name)) && matches(filter, s.name, s.description)
+  )
   const skillItems: SlashItem[] = visibleSkills.map((s) => ({
     kind: 'skill',
     name: s.name,

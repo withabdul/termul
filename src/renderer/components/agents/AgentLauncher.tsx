@@ -113,6 +113,7 @@ import { useOskViewport } from '@/hooks/use-osk-viewport'
 import { useResolvedSupportedAcpAgents } from '@/hooks/use-resolved-supported-acp-agents'
 import { useServerAdmitsRemoteWrites } from '@/hooks/use-server-admits-remote-writes'
 import type { ContentBlock } from '@/lib/acp-api'
+import { resolveMcpServersForProject } from '@/lib/acp-mcp-persistence'
 import { installSupportedAgent, isInstallable } from '@/lib/agents/agent-setup'
 import { deriveAgentUpdates, deriveSpawnBasis } from '@/lib/agents/agent-update-utils'
 import {
@@ -134,6 +135,7 @@ import { dialogApi, persistenceApi } from '@/lib/api'
 import { registerSessionTempFiles } from '@/lib/attachment-temp-cleanup'
 import type { TermulToolId } from '@/lib/composer/termul-tools'
 import { logFrontendError } from '@/lib/log-api'
+import { partitionSkillsByEnabled } from '@/lib/skills-settings-persistence'
 import { platform as osPlatform } from '@/lib/tauri-os'
 import { isTauriContext } from '@/lib/tauri-runtime'
 import { cn } from '@/lib/utils'
@@ -154,6 +156,7 @@ import {
 } from '@/stores/acp-store/composer-options'
 import { quickLauncherOnScreen } from '@/stores/quick-chat-store'
 import { useWorktreePick } from '@/stores/shell-layout-store'
+import { useSkillsSettingsStore } from '@/stores/skills-settings-store'
 import { findPaneById, useWorkspaceStore } from '@/stores/workspace-store'
 
 interface AgentLauncherProps {
@@ -273,14 +276,20 @@ export function AgentLauncher({ target, className }: AgentLauncherProps): React.
 
   const acpConfigs = useAcpStore((s) => s.agentConfigs)
   const saveAgentConfig = useAcpStore((s) => s.saveAgentConfig)
-  const mcpServers = useAcpStore((s) => s.mcpServers) ?? EMPTY_MCP_SERVERS
-  const mcpCount = mcpServers.length
+  const rawMcpServers = useAcpStore((s) => s.mcpServers) ?? EMPTY_MCP_SERVERS
+  const mcpProjectOverrides = useAcpStore((s) => s.mcpProjectOverrides)
   const setMcpServerEnabled = useAcpStore((s) => s.setMcpServerEnabled)
+  const setProjectMcpServerOverride = useAcpStore((s) => s.setProjectMcpServerOverride)
   const mcpProbeStatus = useAcpStore((s) => s.mcpProbeStatus) ?? EMPTY_PROBE_STATUS
   const mcpProbeError = useAcpStore((s) => s.mcpProbeError) ?? EMPTY_PROBE_ERROR
   const mcpTools = useAcpStore((s) => s.mcpTools) ?? EMPTY_MCP_TOOLS
   const loadMcpTools = useAcpStore((s) => s.loadMcpTools)
   const { projectId: activeProjectId, project: activeProject, projectRoot } = place
+  const mcpServers = useMemo(
+    () => resolveMcpServersForProject(rawMcpServers, mcpProjectOverrides, activeProjectId),
+    [rawMcpServers, mcpProjectOverrides, activeProjectId]
+  )
+  const mcpCount = mcpServers.length
   const projectLabel = activeProject?.name ?? 'this folder'
   const projectIsGitRepo = Boolean(activeProject?.isGitRepo)
   const projectGitBranch = activeProject?.gitBranch ?? null
@@ -339,6 +348,11 @@ export function AgentLauncher({ target, className }: AgentLauncherProps): React.
   // — not the worktree CWD which has no .agents/skills/.
   const skillsRoot = place.skillsRoot
   const { skills } = useAgentSkills(skillsRoot)
+  const disabledSkills = useSkillsSettingsStore((s) => s.disabledSkills)
+  const disabledSkillNames = useMemo(
+    () => partitionSkillsByEnabled(skills, disabledSkills, activeProjectId).disabledNames,
+    [skills, disabledSkills, activeProjectId]
+  )
   const supportedAgents = useResolvedSupportedAcpAgents(acpConfigs)
   const { usingRemoteRegistry, activeRegistry, remoteRegistry, applyRemoteRegistry } =
     useAcpRegistryCatalog()
@@ -866,6 +880,7 @@ export function AgentLauncher({ target, className }: AgentLauncherProps): React.
     configOptions: optionsInteractive ? effectiveConfigOptions : [],
     modes: optionsInteractive ? effectiveModes : null,
     skills,
+    disabledSkillNames,
     disabled: composerDisabled,
     onSetConfig: handleSetConfig,
     onSetMode: handleSetMode,
@@ -1907,6 +1922,7 @@ export function AgentLauncher({ target, className }: AgentLauncherProps): React.
                   mcpCount={mcpCount}
                   mcpServers={mcpServers}
                   setMcpServerEnabled={setMcpServerEnabled}
+                  setProjectMcpServerOverride={setProjectMcpServerOverride}
                   preparedKey={preparedKey}
                   activeConfigId={activeConfigId}
                   projectRoot={projectRoot}
@@ -1952,6 +1968,7 @@ export function AgentLauncher({ target, className }: AgentLauncherProps): React.
                         mcpCount,
                         mcpServers,
                         setMcpServerEnabled,
+                        setProjectMcpServerOverride,
                         preparedKey,
                         activeConfigId,
                         projectRoot,

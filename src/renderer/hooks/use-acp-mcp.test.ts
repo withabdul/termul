@@ -6,6 +6,7 @@ import { useProjectStore } from '@/stores/project-store'
 
 const mocks = vi.hoisted(() => ({
   loadMcpServers: vi.fn(),
+  loadMcpProjectOverrides: vi.fn(),
   probeMcpServer: vi.fn(),
   logFrontendError: vi.fn()
 }))
@@ -13,9 +14,14 @@ const mocks = vi.hoisted(() => ({
 // Mutable store state the mocked `useAcpStore` selector reads — tests drive
 // the auto-probe pass by mutating this object, mirroring how the real store
 // replaces (never mutates) `mcpServers` on each action.
-const state: { mcpServers: StoredMcpServer[]; mcpServersLoaded: boolean } = {
+const state: {
+  mcpServers: StoredMcpServer[]
+  mcpServersLoaded: boolean
+  mcpProjectOverrides: Record<string, Record<string, boolean>>
+} = {
   mcpServers: [],
-  mcpServersLoaded: false
+  mcpServersLoaded: false,
+  mcpProjectOverrides: {}
 }
 const deletions = new Map<string, number>()
 
@@ -23,6 +29,7 @@ vi.mock('@/stores/acp-store', () => {
   const getState = () => ({
     ...state,
     loadMcpServers: mocks.loadMcpServers,
+    loadMcpProjectOverrides: mocks.loadMcpProjectOverrides,
     probeMcpServer: mocks.probeMcpServer
   })
   const useAcpStore = (sel?: (s: Record<string, unknown>) => unknown) =>
@@ -52,8 +59,10 @@ describe('useAcpMcp — auto-probe pass', () => {
     _resetAutoProbedMcpServersForTesting()
     state.mcpServers = []
     state.mcpServersLoaded = false
+    state.mcpProjectOverrides = {}
     deletions.clear()
     mocks.loadMcpServers.mockResolvedValue(undefined)
+    mocks.loadMcpProjectOverrides.mockResolvedValue(undefined)
     mocks.probeMcpServer.mockResolvedValue(undefined)
     mocks.logFrontendError.mockResolvedValue(undefined)
   })
@@ -220,6 +229,17 @@ describe('useAcpMcp — auto-probe pass', () => {
         message: expect.stringContaining("rejected for server id 'a'")
       })
     )
+  })
+
+  it('probes a globally disabled server when a project override enables it', async () => {
+    state.mcpServers = [stdioServer('a', false)]
+    state.mcpServersLoaded = true
+    state.mcpProjectOverrides = { p1: { a: true } }
+
+    renderHook(() => useAcpMcp())
+    await vi.advanceTimersByTimeAsync(2_000)
+    expect(mocks.loadMcpProjectOverrides).toHaveBeenCalledTimes(1)
+    expect(mocks.probeMcpServer).toHaveBeenCalledWith('a')
   })
 
   it('a rejected registry load is caught and logged (never unhandled)', async () => {

@@ -53,6 +53,7 @@ import { useProjectRegistry } from './hooks/use-project-registry'
 import { useRemoteProjects } from './hooks/use-remote-projects'
 import { useRenameNotice } from './hooks/use-rename-notice'
 import { useShellLayoutHydration } from './hooks/use-shell-layout-hydration'
+import { useSkillsSettings } from './hooks/use-skills-settings'
 import { useSmoothWheelScroll } from './hooks/use-smooth-wheel-scroll'
 import { useSSHSessionEvents } from './hooks/use-ssh-session-events'
 import { useTerminalDetachedOutput } from './hooks/use-terminal-detached-output'
@@ -137,6 +138,7 @@ function AppEffects(): null {
   // A chat agent's proposed automation opens for review. Both roots.
   useAutomationProposals()
   useAcpMcp()
+  useSkillsSettings()
   usePreventFileDropNavigation()
   // Suppress the native webview context menu app-wide (BUBBLE phase) so
   // portaled overlays (toasts, modals) outside <GlobalContextMenu>'s Radix

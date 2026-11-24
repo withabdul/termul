@@ -53,6 +53,7 @@ const {
   mockSetModel,
   mockMcpCount,
   mockSetMcpServerEnabled,
+  mockSetProjectMcpServerOverride,
   mockLoadMcpTools,
   mockRespondPermission,
   mockSkills,
@@ -90,6 +91,7 @@ const {
     // (introduced alongside the status/tools/chatbox-toggle work). Reused across
     // renders so call assertions hold.
     mockSetMcpServerEnabled: vi.fn(async () => {}),
+    mockSetProjectMcpServerOverride: vi.fn(async () => {}),
     mockLoadMcpTools: vi.fn(async () => {}),
     mockRespondPermission: vi.fn(async () => {}),
     // Override-able skills list (defaults to [] — web/no-skills parity). Skill
@@ -222,6 +224,8 @@ vi.mock('@/stores/acp-store', () => {
       enabled: true
     })),
     setMcpServerEnabled: mockSetMcpServerEnabled,
+    mcpProjectOverrides: {},
+    setProjectMcpServerOverride: mockSetProjectMcpServerOverride,
     mcpProbeStatus: {} as Record<string, string>,
     mcpProbeError: {} as Record<string, string | undefined>,
     mcpTools: {} as Record<string, unknown[]>,

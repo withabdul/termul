@@ -18,6 +18,7 @@ const DECLARED_SCOPES: Record<keyof typeof PersistenceKeys, KeyScope> = {
   projectPrefs: 'device',
   windowState: 'device',
   appSettings: 'sharedLww',
+  disabledSkills: 'sharedLww',
   keyboardShortcuts: 'sharedLww',
   contextBarSettings: 'sharedLww',
   tocSettings: 'sharedLww',
@@ -30,6 +31,7 @@ const DECLARED_SCOPES: Record<keyof typeof PersistenceKeys, KeyScope> = {
   acpAgents: 'sharedLww',
   acpAuthMethods: 'sharedLww',
   acpMcpServers: 'sharedLww',
+  acpMcpProjectOverrides: 'sharedLww',
   acpMentionRecentsLegacy: 'device',
   acpMentionRecents: 'device',
   sshProfiles: 'sharedCas',
@@ -92,7 +94,7 @@ describe('PersistenceKeys', () => {
 describe('scopeOf', () => {
   it('classifies every shared-lww key', () => {
     for (const key of KEY_SCOPES.sharedLww) expect(scopeOf(key), key).toBe('sharedLww')
-    expect([...KEY_SCOPES.sharedLww]).toHaveLength(9)
+    expect([...KEY_SCOPES.sharedLww]).toHaveLength(11)
   })
 
   it('classifies ssh/profiles as shared-cas', () => {

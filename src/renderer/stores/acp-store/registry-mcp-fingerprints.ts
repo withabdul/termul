@@ -34,13 +34,19 @@ export function forgetRegistryMcpServers(sessionId: SessionId): void {
 }
 
 export function registryMcpServersAreCurrent(
-  state: Pick<AcpState, 'mcpServers' | 'agents'>,
+  state: Pick<AcpState, 'mcpServers' | 'agents'> & Partial<Pick<AcpState, 'mcpProjectOverrides'>>,
   sessionId: SessionId,
-  agentId: AgentId
+  agentId: AgentId,
+  projectId?: string
 ): boolean {
+  const projectOverrides = projectId ? state.mcpProjectOverrides?.[projectId] : undefined
   return (
-    registryMcpServersMatch(sessionId, state.mcpServers, state.agents[agentId]?.capabilities) !==
-    false
+    registryMcpServersMatch(
+      sessionId,
+      state.mcpServers,
+      state.agents[agentId]?.capabilities,
+      projectOverrides
+    ) !== false
   )
 }
 
@@ -52,11 +58,12 @@ export function registryMcpServersAreCurrent(
 export function registryMcpServersMatch(
   sessionId: SessionId,
   mcpServers: StoredMcpServer[],
-  capabilities: AgentCapabilities | null | undefined
+  capabilities: AgentCapabilities | null | undefined,
+  projectOverrides?: Readonly<Record<string, boolean>>
 ): boolean | null {
   const recorded = registryMcpFingerprints.get(sessionId)
   if (recorded === undefined) return null
-  const { servers } = selectMcpServersForAgent(mcpServers, capabilities)
+  const { servers } = selectMcpServersForAgent(mcpServers, capabilities, projectOverrides)
   return registryMcpDigest(servers) === recorded
 }
 

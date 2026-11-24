@@ -16,9 +16,13 @@ import {
 import {
   catalogInstallEntry,
   loadMcpServers as loadMcpServersFromDisk,
+  loadProjectMcpOverrides as loadProjectMcpOverridesFromDisk,
   normalizeMcpRegistry,
+  normalizeProjectMcpOverrides,
+  type ProjectMcpOverrides,
   type StoredMcpServer,
-  saveMcpServers as saveMcpServersToDisk
+  saveMcpServers as saveMcpServersToDisk,
+  saveProjectMcpOverrides as saveProjectMcpOverridesToDisk
 } from '@/lib/acp-mcp-persistence'
 import { logFrontendError } from '@/lib/log-api'
 import { pendingFromRequest } from '@/lib/mcp-install-request'
@@ -43,7 +47,16 @@ function runSerializedMcpRegistryMutation<T>(mutation: () => Promise<T>): Promis
   return run
 }
 
+let mcpOverridesQueue: Promise<unknown> = Promise.resolve()
+
+function runSerializedMcpOverridesMutation<T>(mutation: () => Promise<T>): Promise<T> {
+  const run = mcpOverridesQueue.then(mutation)
+  mcpOverridesQueue = run.catch(() => undefined)
+  return run
+}
+
 let sharedMcpSyncStarted = false
+let sharedMcpOverridesSyncStarted = false
 
 /**
  * Show the server list another browser or device saved. Started once, after
@@ -68,10 +81,39 @@ function startSharedMcpSync(
   })
 }
 
+function startSharedMcpOverridesSync(set: Parameters<McpSliceCreator>[0]): void {
+  if (sharedMcpOverridesSyncStarted) return
+  sharedMcpOverridesSyncStarted = true
+  syncSharedKey<unknown>(PersistenceKeys.acpMcpProjectOverrides, (change) => {
+    const next = change.exists ? normalizeProjectMcpOverrides(change.data) : {}
+    set({ mcpProjectOverrides: next, mcpProjectOverridesLoaded: true })
+  })
+}
+
+function pruneOverrideServerId(
+  overrides: ProjectMcpOverrides,
+  serverId: string
+): { next: ProjectMcpOverrides; changed: boolean } {
+  let changed = false
+  const next: ProjectMcpOverrides = {}
+  for (const [projectId, projectMap] of Object.entries(overrides)) {
+    if (!(serverId in projectMap)) {
+      next[projectId] = projectMap
+      continue
+    }
+    changed = true
+    const { [serverId]: _dropped, ...rest } = projectMap
+    if (Object.keys(rest).length > 0) next[projectId] = rest
+  }
+  return { next, changed }
+}
+
 type McpSliceState = Pick<
   AcpState,
   | 'mcpServers'
   | 'mcpServersLoaded'
+  | 'mcpProjectOverrides'
+  | 'mcpProjectOverridesLoaded'
   | 'pendingMcpInstalls'
   | 'mcpProbeStatus'
   | 'mcpOAuthConnecting'
@@ -82,10 +124,14 @@ type McpSliceState = Pick<
   | 'mcpProbing'
   | 'mcpProbeError'
   | 'loadMcpServers'
+  | 'loadMcpProjectOverrides'
   | 'saveMcpServer'
   | 'importMcpServers'
   | 'saveCatalogInstall'
   | 'setMcpServerEnabled'
+  | 'setProjectMcpServerOverride'
+  | 'clearProjectMcpServerOverride'
+  | 'resetProjectMcpOverrides'
   | 'deleteMcpServer'
   | 'answerMcpInstall'
   | 'dismissMcpInstall'
@@ -218,6 +264,8 @@ function reprobeEditedServer(
 export const createMcpSlice: McpSliceCreator = (set, get) => ({
   mcpServers: [],
   mcpServersLoaded: false,
+  mcpProjectOverrides: {},
+  mcpProjectOverridesLoaded: false,
   pendingMcpInstalls: {},
   mcpProbeStatus: {},
   mcpOAuthConnecting: {},
@@ -328,6 +376,116 @@ export const createMcpSlice: McpSliceCreator = (set, get) => ({
         void logFrontendError({
           source: 'acp-store.setMcpServerEnabled',
           message: `Failed to persist MCP registry toggle (${String(err)})`
+        })
+        throw err
+      }
+    }),
+
+  loadMcpProjectOverrides: async () => {
+    try {
+      const overrides = await loadProjectMcpOverridesFromDisk()
+      set({ mcpProjectOverrides: overrides, mcpProjectOverridesLoaded: true })
+      startSharedMcpOverridesSync(set)
+    } catch (err) {
+      void logFrontendError({
+        level: 'warn',
+        source: 'acp-store.loadMcpProjectOverrides',
+        message: `Failed to load MCP project overrides (${String(err)})`
+      })
+    }
+  },
+
+  setProjectMcpServerOverride: (projectId, serverId, enabled) => {
+    if (!projectId) return get().setMcpServerEnabled(serverId, enabled)
+    return runSerializedMcpOverridesMutation(async () => {
+      const previous = get().mcpProjectOverrides
+      const server = get().mcpServers.find((s) => s.id === serverId)
+      const globalEnabled = server ? server.enabled !== false : true
+      const currentProjectMap = previous[projectId] ?? {}
+      const nextProjectMap = { ...currentProjectMap }
+      if (enabled === globalEnabled) {
+        delete nextProjectMap[serverId]
+      } else {
+        nextProjectMap[serverId] = enabled
+      }
+      const next: ProjectMcpOverrides = { ...previous }
+      if (Object.keys(nextProjectMap).length === 0) {
+        delete next[projectId]
+      } else {
+        next[projectId] = nextProjectMap
+      }
+      set({ mcpProjectOverrides: next })
+      try {
+        await saveProjectMcpOverridesToDisk(next)
+        void logFrontendError({
+          level: 'info',
+          source: 'acp-store.setProjectMcpServerOverride',
+          message: `Set project ${projectId} MCP override for '${serverId}' to ${enabled === globalEnabled ? 'global default' : String(enabled)}`
+        })
+      } catch (err) {
+        set({ mcpProjectOverrides: previous })
+        void logFrontendError({
+          level: 'warn',
+          source: 'acp-store.setProjectMcpServerOverride',
+          message: `Failed to persist MCP project override (${String(err)})`
+        })
+        throw err
+      }
+    })
+  },
+
+  clearProjectMcpServerOverride: (projectId, serverId) =>
+    runSerializedMcpOverridesMutation(async () => {
+      if (!projectId) return
+      const previous = get().mcpProjectOverrides
+      const currentProjectMap = previous[projectId]
+      if (!currentProjectMap || !(serverId in currentProjectMap)) return
+      const { [serverId]: _dropped, ...rest } = currentProjectMap
+      const next: ProjectMcpOverrides = { ...previous }
+      if (Object.keys(rest).length === 0) {
+        delete next[projectId]
+      } else {
+        next[projectId] = rest
+      }
+      set({ mcpProjectOverrides: next })
+      try {
+        await saveProjectMcpOverridesToDisk(next)
+        void logFrontendError({
+          level: 'info',
+          source: 'acp-store.clearProjectMcpServerOverride',
+          message: `Cleared project ${projectId} MCP override for '${serverId}'`
+        })
+      } catch (err) {
+        set({ mcpProjectOverrides: previous })
+        void logFrontendError({
+          level: 'warn',
+          source: 'acp-store.clearProjectMcpServerOverride',
+          message: `Failed to clear MCP project override (${String(err)})`
+        })
+        throw err
+      }
+    }),
+
+  resetProjectMcpOverrides: (projectId) =>
+    runSerializedMcpOverridesMutation(async () => {
+      if (!projectId) return
+      const previous = get().mcpProjectOverrides
+      if (!(projectId in previous)) return
+      const { [projectId]: _dropped, ...next } = previous
+      set({ mcpProjectOverrides: next })
+      try {
+        await saveProjectMcpOverridesToDisk(next)
+        void logFrontendError({
+          level: 'info',
+          source: 'acp-store.resetProjectMcpOverrides',
+          message: `Reset all MCP overrides for project ${projectId}`
+        })
+      } catch (err) {
+        set({ mcpProjectOverrides: previous })
+        void logFrontendError({
+          level: 'warn',
+          source: 'acp-store.resetProjectMcpOverrides',
+          message: `Failed to reset MCP project overrides (${String(err)})`
         })
         throw err
       }
@@ -459,6 +617,22 @@ export const createMcpSlice: McpSliceCreator = (set, get) => ({
         mcpOAuthConnecting: omitKey(s.mcpOAuthConnecting, id),
         mcpOAuthPasteBack: omitKey(s.mcpOAuthPasteBack, id)
       }))
+      void runSerializedMcpOverridesMutation(async () => {
+        const previousOverrides = get().mcpProjectOverrides
+        const { next: nextOverrides, changed } = pruneOverrideServerId(previousOverrides, id)
+        if (!changed) return
+        set({ mcpProjectOverrides: nextOverrides })
+        try {
+          await saveProjectMcpOverridesToDisk(nextOverrides)
+        } catch (err) {
+          set({ mcpProjectOverrides: previousOverrides })
+          void logFrontendError({
+            level: 'warn',
+            source: 'acp-store.deleteMcpServer',
+            message: `Failed to prune MCP project overrides after server delete (${String(err)})`
+          })
+        }
+      })
     }),
 
   // MCP probe (on-demand, read-only). No persistence, no rollback. Dedupes

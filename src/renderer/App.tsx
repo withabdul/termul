@@ -80,6 +80,7 @@ import { usePreventFileDropNavigation } from './hooks/use-prevent-file-drop-navi
 import { usePreventNativeContextMenu } from './hooks/use-prevent-native-context-menu'
 import { useProjectRegistry } from './hooks/use-project-registry'
 import { useShellLayoutHydration } from './hooks/use-shell-layout-hydration'
+import { useSkillsSettings } from './hooks/use-skills-settings'
 import { useSmoothWheelScroll } from './hooks/use-smooth-wheel-scroll'
 import { useTranslucentRailSync } from './hooks/use-translucent-rail'
 import { useAppliedUiZoomSync } from './hooks/use-ui-zoom'
@@ -212,6 +213,7 @@ function AppEffects(): null {
   // A chat agent's proposed automation opens for review. Both roots.
   useAutomationProposals()
   useAcpMcp()
+  useSkillsSettings()
   usePreventFileDropNavigation()
   // Suppress the native browser context menu app-wide (BUBBLE phase) for web
   // parity — portaled overlays (toasts, modals) outside

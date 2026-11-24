@@ -1,4 +1,4 @@
-import { Braces, Globe, KeyRound, Link2, Settings, Terminal } from '@/components/icons'
+import { Braces, Globe, KeyRound, Link2, Network, Settings, Terminal } from '@/components/icons'
 import { BROWSER_ANCHORS } from '@/components/settings/browser-policy-copy'
 import { rowId } from '@/components/settings/row-id'
 import type { SettingsCategory } from '@/components/settings/SettingsLayout'
@@ -46,6 +46,13 @@ export const PROJECT_SETTINGS_CATEGORIES: SettingsCategory[] = [
     group: 'Agents'
   },
   {
+    id: 'mcp-servers',
+    label: 'MCP servers',
+    description: 'Override which global MCP servers new chats in this project use.',
+    icon: <Network size={16} />,
+    group: 'Agents'
+  },
+  {
     id: 'browser',
     label: 'Browser',
     description: 'Which sites agents may browse in this project without asking.',
@@ -60,6 +67,12 @@ export const PROJECT_SETTINGS_SEARCH_INDEX: SettingsSearchEntry[] = [
     label: 'Claude account',
     description: 'Choose the Claude account that chats in this project use.',
     keywords: ['provider', 'account', 'claude', 'work', 'personal', 'switch']
+  },
+  {
+    categoryId: 'mcp-servers',
+    label: 'MCP servers',
+    description: 'Override which global MCP servers new chats in this project use.',
+    keywords: ['mcp', 'connectors', 'servers', 'override', 'disable', 'enable', 'tools']
   },
   {
     categoryId: 'browser',

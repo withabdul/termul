@@ -22,12 +22,14 @@ import type {
 } from '@/lib/acp-api'
 import { registerSessionTempFiles } from '@/lib/attachment-temp-cleanup'
 import type { TermulToolId } from '@/lib/composer/termul-tools'
+import { partitionSkillsByEnabled } from '@/lib/skills-settings-persistence'
 import { cn } from '@/lib/utils'
 import type { AcpSession, PendingPermission, QueuedPrompt } from '@/stores/acp-store'
 import { useAcpMessages, useSessionUsage } from '@/stores/acp-store'
 import type { OptionValues } from '@/stores/acp-store/composer-options'
 import { useAntigravityRestartingStore } from '@/stores/antigravity-account-restart'
 import { useCodexRestartingStore } from '@/stores/codex-account-restart'
+import { useSkillsSettingsStore } from '@/stores/skills-settings-store'
 import { ModeChip } from './AgentHeader'
 import { AttachmentPreviewGroup } from './AttachmentPreviewGroup'
 import { AgentModelSelector } from './agent-model-selector/AgentModelSelector'
@@ -250,6 +252,12 @@ export function ChatInputBar({
     rest: nonFastGenericOptions
   } = splitFastModeOption(allModelConfig, visibleGenericConfigOptions)
   const { skills: availableSkills } = useAgentSkills(projectRoot ?? session.cwd)
+  const disabledSkills = useSkillsSettingsStore((s) => s.disabledSkills)
+  const disabledSkillNames = useMemo(
+    () =>
+      partitionSkillsByEnabled(availableSkills, disabledSkills, session.projectId).disabledNames,
+    [availableSkills, disabledSkills, session.projectId]
+  )
   const sessionUsage = useSessionUsage(session.id)
   // Compact shows only when the agent lists `/compact`; it sends the command as a prompt.
   const hasCompactCommand = commands.some((command) => command.name === 'compact')
@@ -365,6 +373,7 @@ export function ChatInputBar({
     configOptions: controlsDisabled ? NO_CONFIG_OPTIONS : configOptions,
     modes: controlsDisabled ? null : modes,
     skills: availableSkills,
+    disabledSkillNames,
     disabled,
     onSetConfig,
     onSetMode,

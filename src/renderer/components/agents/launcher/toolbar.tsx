@@ -36,6 +36,11 @@ export interface LauncherMcpInput {
   mcpCount: number
   mcpServers: StoredMcpServer[]
   setMcpServerEnabled: (id: string, enabled: boolean) => Promise<void>
+  setProjectMcpServerOverride?: (
+    projectId: string,
+    serverId: string,
+    enabled: boolean
+  ) => Promise<void>
   preparedKey: string | null
   activeConfigId: string
   projectRoot: string | undefined
@@ -47,13 +52,15 @@ export interface LauncherMcpInput {
 }
 
 /**
- * The launcher's connectors list props: a toggle saves the server and
- * prepares the chat again so the new set applies to the chat it starts.
+ * The launcher's connectors list props: a toggle saves the project override
+ * (or global state if no project is active) and prepares the chat again so
+ * the new set applies to the chat it starts.
  */
 export function launcherMcpListProps({
   mcpCount,
   mcpServers,
   setMcpServerEnabled,
+  setProjectMcpServerOverride,
   preparedKey,
   activeConfigId,
   projectRoot,
@@ -67,7 +74,11 @@ export function launcherMcpListProps({
     count: mcpCount,
     servers: mcpServers,
     onToggle: (id: string, enabled: boolean) => {
-      void setMcpServerEnabled(id, enabled)
+      const update =
+        activeProjectId && setProjectMcpServerOverride
+          ? setProjectMcpServerOverride(activeProjectId, id, enabled)
+          : setMcpServerEnabled(id, enabled)
+      void update
         .then(() => {
           if (!preparedKey || !activeConfigId || !projectRoot) return
           const store = useAcpStore.getState()
@@ -105,6 +116,7 @@ export function LauncherToolbar({
   mcpCount,
   mcpServers,
   setMcpServerEnabled,
+  setProjectMcpServerOverride,
   preparedKey,
   activeConfigId,
   projectRoot,
@@ -147,6 +159,11 @@ export function LauncherToolbar({
   mcpCount: number
   mcpServers: StoredMcpServer[]
   setMcpServerEnabled: (id: string, enabled: boolean) => Promise<void>
+  setProjectMcpServerOverride?: (
+    projectId: string,
+    serverId: string,
+    enabled: boolean
+  ) => Promise<void>
   preparedKey: string | null
   activeConfigId: string
   projectRoot: string | undefined
@@ -200,6 +217,7 @@ export function LauncherToolbar({
     mcpCount,
     mcpServers,
     setMcpServerEnabled,
+    setProjectMcpServerOverride,
     preparedKey,
     activeConfigId,
     projectRoot,

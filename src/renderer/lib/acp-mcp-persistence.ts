@@ -16,6 +16,8 @@ export type StoredMcpServer = McpServerConfig & {
   catalog?: McpEntryCatalogProvenance
 }
 
+export type ProjectMcpOverrides = Record<string, Record<string, boolean>>
+
 export type McpValidationIssue =
   | 'name-required'
   | 'command-required'
@@ -262,7 +264,8 @@ export function buildMcpServers(registry: StoredMcpServer[], selectedIds: string
 
 export function selectMcpServersForAgent(
   registry: StoredMcpServer[],
-  capabilities: AgentCapabilities | null | undefined
+  capabilities: AgentCapabilities | null | undefined,
+  projectOverrides?: Readonly<Record<string, boolean>>
 ): McpServerSelection {
   const servers: McpServer[] = []
   const skipped: SkippedMcpServer[] = []
@@ -270,7 +273,8 @@ export function selectMcpServersForAgent(
   const pending = capabilities == null
 
   for (const entry of registry) {
-    if (entry.enabled === false) continue
+    const effectiveEnabled = projectOverrides?.[entry.id] ?? entry.enabled !== false
+    if (!effectiveEnabled) continue
     const transport = transportOf(entry)
     if (transport === 'stdio' || pending) {
       servers.push(toWireServer(entry))
@@ -282,6 +286,54 @@ export function selectMcpServersForAgent(
   }
 
   return { servers, skipped, pending }
+}
+
+export function normalizeProjectMcpOverrides(value: unknown): ProjectMcpOverrides {
+  if (!isRecord(value)) return {}
+  const normalized: ProjectMcpOverrides = {}
+  for (const [projectId, overrides] of Object.entries(value)) {
+    if (projectId.length === 0 || !isRecord(overrides)) continue
+    const projectMap: Record<string, boolean> = {}
+    let hasEntry = false
+    for (const [serverId, enabled] of Object.entries(overrides)) {
+      if (serverId.length === 0 || typeof enabled !== 'boolean') continue
+      projectMap[serverId] = enabled
+      hasEntry = true
+    }
+    if (hasEntry) normalized[projectId] = projectMap
+  }
+  return normalized
+}
+
+export function resolveMcpServersForProject(
+  registry: StoredMcpServer[],
+  projectOverrides: ProjectMcpOverrides | undefined,
+  projectId: string | null | undefined
+): StoredMcpServer[] {
+  if (!projectId) return registry
+  const overrides = projectOverrides?.[projectId]
+  if (!overrides) return registry
+  return registry.map((server) => {
+    const override = overrides[server.id]
+    return override === undefined ? server : { ...server, enabled: override }
+  })
+}
+
+export async function loadProjectMcpOverrides(): Promise<ProjectMcpOverrides> {
+  const res = await persistenceApi.read<unknown>(PersistenceKeys.acpMcpProjectOverrides)
+  if (res.success) return normalizeProjectMcpOverrides(res.data)
+  if (res.code === 'KEY_NOT_FOUND') return {}
+  throw new Error(res.error ?? 'Failed to load MCP project overrides')
+}
+
+export async function saveProjectMcpOverrides(overrides: ProjectMcpOverrides): Promise<void> {
+  const res = await persistenceApi.write(
+    PersistenceKeys.acpMcpProjectOverrides,
+    normalizeProjectMcpOverrides(overrides)
+  )
+  if (!res.success) {
+    throw new Error(res.error ?? 'Failed to persist MCP project overrides')
+  }
 }
 
 /** The registry is one host-wide list, read the same way on every surface. */

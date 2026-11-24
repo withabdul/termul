@@ -13,10 +13,14 @@ import {
   buildMcpServers,
   catalogInstallEntry,
   loadMcpServers,
+  loadProjectMcpOverrides,
   normalizeMcpRegistry,
+  normalizeProjectMcpOverrides,
+  resolveMcpServersForProject,
   type StoredMcpServer,
   sameLaunch,
   saveMcpServers,
+  saveProjectMcpOverrides,
   selectMcpServersForAgent,
   transportOf,
   validateMcpServer
@@ -322,5 +326,58 @@ describe('legacy canvas-mcp-* migration', () => {
 
     expect(await loadMcpServers()).toEqual(registry)
     expect(persistenceApi.write).toHaveBeenCalledTimes(2)
+  })
+})
+
+describe('MCP project overrides helpers', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('normalizes malformed override objects safely', () => {
+    expect(normalizeProjectMcpOverrides(null)).toEqual({})
+    expect(normalizeProjectMcpOverrides(['bad'])).toEqual({})
+    expect(
+      normalizeProjectMcpOverrides({
+        p1: { stdio: false, bad: 'nope', '': true },
+        p2: {},
+        '': { stdio: true }
+      })
+    ).toEqual({
+      p1: { stdio: false }
+    })
+  })
+
+  it('resolves effective server enabled state and agent selection per project', () => {
+    const withDisabled: StoredMcpServer[] = [
+      { id: 'stdio', type: 'stdio', name: 'Files', command: 'npx', enabled: true },
+      { id: 'docs', type: 'stdio', name: 'Docs', command: 'uvx', enabled: false }
+    ]
+    const overrides = { p1: { stdio: false, docs: true } }
+
+    expect(
+      resolveMcpServersForProject(withDisabled, overrides, 'p1').map((s) => s.enabled)
+    ).toEqual([false, true])
+    expect(
+      resolveMcpServersForProject(withDisabled, overrides, 'p2').map((s) => s.enabled)
+    ).toEqual([true, false])
+    expect(selectMcpServersForAgent(withDisabled, null, overrides.p1).servers).toEqual([
+      { type: 'stdio', name: 'Docs', command: 'uvx', args: [], env: [] }
+    ])
+  })
+
+  it('loads and saves project MCP overrides', async () => {
+    vi.mocked(persistenceApi.read).mockResolvedValueOnce({
+      success: false,
+      code: 'KEY_NOT_FOUND',
+      error: 'missing'
+    })
+    expect(await loadProjectMcpOverrides()).toEqual({})
+
+    vi.mocked(persistenceApi.write).mockResolvedValueOnce({ success: true, data: undefined })
+    await saveProjectMcpOverrides({ p1: { stdio: false }, p2: {} })
+    expect(persistenceApi.write).toHaveBeenCalledWith(PersistenceKeys.acpMcpProjectOverrides, {
+      p1: { stdio: false }
+    })
   })
 })

@@ -33,6 +33,7 @@ import {
 } from './project-settings/categories'
 import { EnvVarsSection } from './project-settings/env-vars-section'
 import { GeneralSection } from './project-settings/general-section'
+import { ProjectMcpServersSection } from './project-settings/mcp-servers-section'
 import { ShellSection } from './project-settings/shell-section'
 import { SymlinksSection } from './project-settings/symlinks-section'
 
@@ -533,6 +534,17 @@ export function ProjectSettingsModal() {
               }}
             />
           </SettingsSection>
+
+          <ProjectMcpServersSection
+            projectId={settingsProject?.id}
+            onManageGlobal={() => {
+              if (hasChanges) {
+                toast.warning('Save or discard your changes first.')
+                return
+              }
+              openAppSettings('mcp-servers')
+            }}
+          />
 
           <ProjectBrowserSection projectId={settingsProject?.id} />
         </SettingsLayout>

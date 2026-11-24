@@ -364,8 +364,8 @@ const ALL_APP_PREF_SEARCH_INDEX: SettingsSearchEntry[] = [
   {
     categoryId: 'skills',
     label: 'Skills',
-    description: 'See skills installed for every project and for the open project.',
-    keywords: ['skill', 'agents', 'SKILL.md', 'slash']
+    description: 'Enable or disable skills installed for every project and for the open project.',
+    keywords: ['skill', 'agents', 'SKILL.md', 'slash', 'disable', 'enable', 'toggle']
   },
   {
     categoryId: 'mcp-servers',
