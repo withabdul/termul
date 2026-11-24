@@ -2,7 +2,7 @@
  "sources": {
   "src/renderer/components/chat/chat-attachments.ts": "73c209ccc477fe3277aa4947c4a87c8480ba2e8a",
   "src/renderer/components/chat/composer-send-blocks.ts": "d770fad76299e3291856ab8db04f56b3565b3838",
-  "src/renderer/components/chat/use-chat-composer.ts": "5aa9af7e638cb6aff4c3fd950b71ec0d5622e4bb",
+  "src/renderer/components/chat/use-chat-composer.ts": "7f8fd23da9d41fc81ac2cf24c1e40fa6c944f909",
   "src/renderer/lib/composer/doc-to-prompt.ts": "5ea8c476731c49ff7de58e9854a27e0956e31ec4",
   "src/renderer/lib/composer/retry-wire.ts": "d0183e079743378cbff4255c177eeb5160fe5948",
   "src/renderer/lib/composer/selection-context.ts": "7964520ef6aafd360721e71fd92bb36fe7df1c32",
