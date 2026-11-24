@@ -47,9 +47,11 @@ export function _resetAutoProbedMcpServersForTesting(): void {
 
 export function useAcpMcp(): void {
   const loadMcpServers = useAcpStore((s) => s.loadMcpServers)
+  const loadMcpProjectOverrides = useAcpStore((s) => s.loadMcpProjectOverrides)
   const probeMcpServer = useAcpStore((s) => s.probeMcpServer)
   const mcpServers = useAcpStore((s) => s.mcpServers)
   const mcpServersLoaded = useAcpStore((s) => s.mcpServersLoaded)
+  const mcpProjectOverrides = useAcpStore((s) => s.mcpProjectOverrides)
   // Registry load — best-effort; the store's action catches its own failures
   // (toast + boundary log), and the `.catch` here guards a transport-level
   // rejection from surfacing as an unhandled rejection.
@@ -60,7 +62,13 @@ export function useAcpMcp(): void {
         message: `MCP registry load rejected (${String(err)})`
       })
     })
-  }, [loadMcpServers])
+    loadMcpProjectOverrides?.().catch((err: unknown) => {
+      void logFrontendError({
+        source: 'acp.useAcpMcp',
+        message: `MCP project overrides load rejected (${String(err)})`
+      })
+    })
+  }, [loadMcpServers, loadMcpProjectOverrides])
 
   // Auto-probe pass — only after the registry has loaded, and each enabled
   // id at most once per app run (`autoProbedServerIds`). `mcpServers` is
@@ -70,7 +78,12 @@ export function useAcpMcp(): void {
   // issue #378) so a fleet of stdio probes never competes with first paint.
   useEffect(() => {
     if (!mcpServersLoaded) return
-    const toProbe = mcpServers.filter((s) => s.enabled !== false && !isMcpServerAutoProbed(s.id))
+    const overridesByProject = Object.values(mcpProjectOverrides ?? {})
+    const toProbe = mcpServers.filter((s) => {
+      if (isMcpServerAutoProbed(s.id)) return false
+      if (s.enabled !== false) return true
+      return overridesByProject.some((proj) => proj[s.id] === true)
+    })
     if (toProbe.length === 0) return
     for (const server of toProbe) {
       markMcpServerAutoProbed(server.id)

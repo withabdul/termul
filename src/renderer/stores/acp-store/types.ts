@@ -65,7 +65,7 @@ import type {
   UserPromptEvent
 } from '@/lib/acp-api'
 import type { AgentSwitchRecord, SessionIndexEntry } from '@/lib/acp-history-persistence'
-import type { StoredMcpServer } from '@/lib/acp-mcp-persistence'
+import type { ProjectMcpOverrides, StoredMcpServer } from '@/lib/acp-mcp-persistence'
 import type { TurnEndNotice } from '@/lib/agent-chat-notify'
 import type { RegistryAgent } from '@/lib/agents/acp-registry'
 import type { PrepareChatError } from '@/lib/agents/acp-spawn-errors'
@@ -578,6 +578,9 @@ export interface AcpState {
   mcpServers: StoredMcpServer[]
   // True once `loadMcpServers` has resolved at least once.
   mcpServersLoaded: boolean
+  // Per-project enable/disable overrides keyed by projectId -> serverId -> boolean.
+  mcpProjectOverrides: ProjectMcpOverrides
+  mcpProjectOverridesLoaded: boolean
   /** Chat approval cards for `mcp_install`, keyed by request id. No secret values. */
   pendingMcpInstalls: Record<string, PendingMcpInstall>
 
@@ -980,6 +983,14 @@ export interface AcpState {
   importMcpServers: (servers: StoredMcpServer[]) => Promise<void>
   saveCatalogInstall: (result: McpInstallCommitResult) => Promise<StoredMcpServer>
   setMcpServerEnabled: (id: string, enabled: boolean) => Promise<void>
+  loadMcpProjectOverrides: () => Promise<void>
+  setProjectMcpServerOverride: (
+    projectId: string,
+    serverId: string,
+    enabled: boolean
+  ) => Promise<void>
+  clearProjectMcpServerOverride: (projectId: string, serverId: string) => Promise<void>
+  resetProjectMcpOverrides: (projectId: string) => Promise<void>
   deleteMcpServer: (id: string) => Promise<void>
   answerMcpInstall: (
     requestId: string,

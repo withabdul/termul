@@ -87,7 +87,8 @@ export async function reloadAgentChat(sessionId: SessionId): Promise<void> {
   const capabilities = state.agents[session.agentId]?.capabilities
   const mcpServers: McpServer[] = selectMcpServersForAgent(
     state.mcpServers ?? [],
-    capabilities
+    capabilities,
+    session.projectId ? state.mcpProjectOverrides?.[session.projectId] : undefined
   ).servers
   const siblings = liveSiblingCount(state.sessions, sessionId, session.agentId)
 

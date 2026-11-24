@@ -29,6 +29,8 @@ export const FRESH = {
   discoveringKeys: {},
   discoveredReopenContexts: {},
   mcpServers: [],
+  mcpProjectOverrides: {},
+  mcpProjectOverridesLoaded: false,
   sessions: {},
   activeSessionId: null,
   sessionUsage: {},

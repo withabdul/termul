@@ -348,6 +348,7 @@ describe('ProjectSettings layout', () => {
       ['Project', 'env-vars'],
       ['Project', 'symlinks'],
       ['Agents', 'provider'],
+      ['Agents', 'mcp-servers'],
       ['Agents', 'browser']
     ])
     expect(PROJECT_SETTINGS_SEARCH_INDEX.some((e) => e.categoryId === 'emergency')).toBe(false)

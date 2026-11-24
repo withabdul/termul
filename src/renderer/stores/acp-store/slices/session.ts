@@ -1276,7 +1276,12 @@ async function openHistorySessionInner(
   // ask_user and every configured MCP server. An explicit caller list (Reload)
   // still wins.
   const reopenMcpServers =
-    options?.mcpServers ?? selectMcpServersForAgent(get().mcpServers, capabilities).servers
+    options?.mcpServers ??
+    selectMcpServersForAgent(
+      get().mcpServers,
+      capabilities,
+      meta.projectId ? get().mcpProjectOverrides?.[meta.projectId] : undefined
+    ).servers
   if (strategy !== 'local' && options?.mcpServers === undefined) {
     // Durable boundary log (AGENTS.md): session id + server count only — the
     // server list carries names/commands/URLs, never logged here.
@@ -1758,7 +1763,11 @@ export const createSessionSlice: StateCreator<AcpState, [], [], SessionSliceStat
     try {
       const selection =
         mcpServers === undefined
-          ? selectMcpServersForAgent(get().mcpServers, get().agents[agentId]?.capabilities)
+          ? selectMcpServersForAgent(
+              get().mcpServers,
+              get().agents[agentId]?.capabilities,
+              projectId ? get().mcpProjectOverrides?.[projectId] : undefined
+            )
           : { servers: mcpServers, skipped: [], pending: false }
       const sessionMcpServers = selection.servers
       if (!selection.pending && selection.skipped.length > 0) {
@@ -2467,7 +2476,11 @@ export const createSessionSlice: StateCreator<AcpState, [], [], SessionSliceStat
     const task = (async () => {
       const connected = get().agentStatus[agentId] === 'connected'
       const capabilities = get().agents[agentId]?.capabilities ?? null
-      const mcpServers = selectMcpServersForAgent(get().mcpServers, capabilities).servers
+      const mcpServers = selectMcpServersForAgent(
+        get().mcpServers,
+        capabilities,
+        projectId ? get().mcpProjectOverrides?.[projectId] : undefined
+      ).servers
       let strategy = decideResume({ connected, capabilities })
 
       if (strategy === 'local') {

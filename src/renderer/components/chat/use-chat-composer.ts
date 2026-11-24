@@ -97,6 +97,7 @@ export interface UseChatComposerArgs {
   configOptions: SessionConfigOption[]
   modes: SessionModeState | null
   skills: AgentSkillSummary[]
+  disabledSkillNames?: ReadonlySet<string>
   disabled: boolean
   onSetConfig: (configId: string, valueId: string) => void | Promise<void>
   onSetMode: (modeId: string) => void | Promise<void>
@@ -224,6 +225,7 @@ export function useChatComposer(args: UseChatComposerArgs): UseChatComposerResul
     configOptions,
     modes,
     skills,
+    disabledSkillNames,
     disabled,
     onSetConfig,
     onSetMode,
@@ -241,8 +243,11 @@ export function useChatComposer(args: UseChatComposerArgs): UseChatComposerResul
   const slashOpen = isSlashTriggerAny(value, caret) && !disabled
   const filter = slashFilter(value, caret)
   const slashSections = useMemo(
-    () => (slashOpen ? buildSlashSections({ commands, configOptions, modes, skills, filter }) : []),
-    [slashOpen, commands, configOptions, modes, skills, filter]
+    () =>
+      slashOpen
+        ? buildSlashSections({ commands, configOptions, modes, skills, disabledSkillNames, filter })
+        : [],
+    [slashOpen, commands, configOptions, modes, skills, disabledSkillNames, filter]
   )
   // Pills are real DOM nodes now, so there is no transparent-text overlay to
   // gate. `hasSkillToken` is still exposed for hosts that branch on whether the

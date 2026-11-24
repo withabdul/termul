@@ -35,6 +35,7 @@ const {
   mockSetMode,
   mockSetModel,
   mockSetMcpServerEnabled,
+  mockSetProjectMcpServerOverride,
   mockLoadMcpTools,
   mockToastError,
   mockLogError,
@@ -55,6 +56,7 @@ const {
   mockSetMode: vi.fn(),
   mockSetModel: vi.fn(),
   mockSetMcpServerEnabled: vi.fn(async () => {}),
+  mockSetProjectMcpServerOverride: vi.fn(async () => {}),
   mockLoadMcpTools: vi.fn(async () => {}),
   mockToastError: vi.fn(),
   mockLogError: vi.fn(async () => {}),
@@ -113,7 +115,9 @@ vi.mock('@/hooks/use-agent-skills', async () => {
 vi.mock('@/stores/acp-store', () => {
   const state = () => ({
     mcpServers: mockMcp.servers,
+    mcpProjectOverrides: {},
     setMcpServerEnabled: mockSetMcpServerEnabled,
+    setProjectMcpServerOverride: mockSetProjectMcpServerOverride,
     mcpProbeStatus: mockMcp.probeStatus,
     mcpProbeError: {} as Record<string, string | undefined>,
     mcpTools: {} as Record<string, unknown[]>,
@@ -1112,19 +1116,19 @@ describe('mobile composer: Connectors in the sheet', () => {
     }
   })
 
-  it('toggles a server through the store action', () => {
+  it('toggles a server through the project override store action', () => {
     mockMcp.servers = [{ id: 'github', type: 'stdio', name: 'github', enabled: true }]
     renderBar()
     const sheet = openMcp()
 
     fireEvent.click(within(sheet).getByRole('switch', { name: 'github' }))
 
-    expect(mockSetMcpServerEnabled).toHaveBeenCalledWith('github', false)
+    expect(mockSetProjectMcpServerOverride).toHaveBeenCalledWith('p1', 'github', false)
   })
 
   it('shows the existing toast when a toggle is rejected', async () => {
     mockMcp.servers = [{ id: 'github', type: 'stdio', name: 'github', enabled: true }]
-    mockSetMcpServerEnabled.mockRejectedValueOnce(new Error('nope'))
+    mockSetProjectMcpServerOverride.mockRejectedValueOnce(new Error('nope'))
     renderBar()
     const sheet = openMcp()
 

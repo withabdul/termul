@@ -193,7 +193,7 @@ function preparedLaunchIsCurrent(state: AcpState, key: string, sessionId: Sessio
   const [configId = '', cwd = ''] = key.split('\0')
   return (
     runsCurrentLaunch(state, session.agentId, configId, cwd, session.projectId) &&
-    registryMcpServersAreCurrent(state, sessionId, session.agentId)
+    registryMcpServersAreCurrent(state, sessionId, session.agentId, session.projectId)
   )
 }
 

@@ -305,6 +305,26 @@ describe('buildSlashSections', () => {
     expect(sections.find((s) => s.id === 'skills')!.items).toHaveLength(2)
   })
 
+  it('hides disabled skills from Skills while still suppressing duplicate harness commands', () => {
+    const sections = buildSlashSections({
+      commands: [
+        { name: 'investigate', description: 'Run an investigation' },
+        { name: 'skill:review', description: 'Review mirror' },
+        { name: 'compact', description: 'Compact conversation' }
+      ],
+      configOptions: [],
+      modes: null,
+      skills,
+      disabledSkillNames: new Set(['investigate', 'review']),
+      filter: ''
+    })
+    expect(sections.find((s) => s.id === 'skills')).toBeUndefined()
+    const commandNames = sections
+      .find((s) => s.id === 'commands')!
+      .items.map((i) => (i.kind === 'command' ? i.name : ''))
+    expect(commandNames).toEqual(['compact'])
+  })
+
   it('hides a same-named command case-insensitively (skill wins)', () => {
     const sections = buildSlashSections({
       commands: [{ name: 'Investigate', description: 'Run an investigation' }],

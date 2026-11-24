@@ -25,6 +25,7 @@ pub const LEGACY_CLIENT_INSTANCE: &str = "legacy";
 /// ending in `/*` names a prefix family.
 pub const SHARED_LWW_KEYS: &[&str] = &[
     "settings/app",
+    "settings/disabled-skills",
     "settings/keyboard-shortcuts",
     "settings/context-bar",
     "settings/toc",
@@ -33,6 +34,7 @@ pub const SHARED_LWW_KEYS: &[&str] = &[
     "acp/agents",
     "acp/auth-methods",
     "acp/mcp-servers",
+    "acp/mcp-project-overrides",
 ];
 
 /// Logical keys that were shared across devices and are compare-and-set.

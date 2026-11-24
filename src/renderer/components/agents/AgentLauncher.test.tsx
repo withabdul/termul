@@ -145,6 +145,7 @@ const {
   mockRetargetWarmPool,
   mockSetSelectedAgentConfigId,
   mockSetMcpServerEnabled,
+  mockSetProjectMcpServerOverride,
   mockLoadMcpTools,
   mockApplyAgentUpdate,
   acpStateRef
@@ -192,6 +193,7 @@ const {
   mockRetargetWarmPool: vi.fn(),
   mockSetSelectedAgentConfigId: vi.fn(),
   mockSetMcpServerEnabled: vi.fn(),
+  mockSetProjectMcpServerOverride: vi.fn(),
   mockLoadMcpTools: vi.fn(),
   mockApplyAgentUpdate: vi.fn(),
   acpStateRef: {
@@ -217,6 +219,7 @@ const {
       agents: {} as Record<string, { id: string; capabilities: unknown; authMethods?: unknown[] }>,
       pendingSignIn: {} as Record<string, string>,
       mcpServers: [] as Array<{ id: string; name: string; enabled?: boolean }>,
+      mcpProjectOverrides: {} as Record<string, Record<string, boolean>>,
       mcpProbeStatus: {} as Record<string, string>,
       mcpTools: {} as Record<string, unknown[]>
     }
@@ -701,6 +704,7 @@ vi.mock('@/stores/acp-store', async () => {
     retargetWarmPool: typeof mockRetargetWarmPool
     setSelectedAgentConfigId: typeof mockSetSelectedAgentConfigId
     setMcpServerEnabled: typeof mockSetMcpServerEnabled
+    setProjectMcpServerOverride: typeof mockSetProjectMcpServerOverride
     loadMcpTools: typeof mockLoadMcpTools
   }
   const useAcpStore = (sel?: (s: MockAcpState) => unknown) =>
@@ -712,6 +716,7 @@ vi.mock('@/stores/acp-store', async () => {
           retargetWarmPool: mockRetargetWarmPool,
           setSelectedAgentConfigId: mockSetSelectedAgentConfigId,
           setMcpServerEnabled: mockSetMcpServerEnabled,
+          setProjectMcpServerOverride: mockSetProjectMcpServerOverride,
           loadMcpTools: mockLoadMcpTools
         })
       : getState()
@@ -865,6 +870,7 @@ beforeEach(() => {
     agents: {},
     pendingSignIn: {},
     mcpServers: [],
+    mcpProjectOverrides: {},
     mcpProbeStatus: {},
     mcpTools: {}
   }
@@ -873,6 +879,7 @@ beforeEach(() => {
   mockTerminalKill.mockResolvedValue({ success: true, data: undefined })
   mockProjectOverride.current = null
   mockSetMcpServerEnabled.mockResolvedValue(undefined)
+  mockSetProjectMcpServerOverride.mockResolvedValue(undefined)
   mockPersistRead.mockResolvedValue({ success: true, data: undefined })
   mockPersistWrite.mockResolvedValue({ success: true })
   mockPersistWriteDebounced.mockResolvedValue({ success: true })
@@ -1805,10 +1812,12 @@ describe('AgentLauncher ACP new thread', () => {
     })
     fireEvent.click(await screen.findByRole('menuitemcheckbox', { name: 'Files' }))
 
-    // The toggle persists to the registry, then cancels + re-prepares so the
-    // next launch resolves MCP from the updated registry instead of the stale
+    // The toggle persists as a project override, then cancels + re-prepares so the
+    // next launch resolves MCP from the updated state instead of the stale
     // pre-warmed session.
-    await waitFor(() => expect(mockSetMcpServerEnabled).toHaveBeenCalledWith('s1', false))
+    await waitFor(() =>
+      expect(mockSetProjectMcpServerOverride).toHaveBeenCalledWith('p1', 's1', false)
+    )
     const key = `${defaultAgent.configId}\0${'/work'}\0`
     expect(mockCancelPreparedChat).toHaveBeenCalledWith(key)
     expect(mockPrepareChat).toHaveBeenCalledWith(defaultAgent.configId, '/work', undefined, 'p1')
@@ -2070,7 +2079,9 @@ describe('AgentLauncher ACP new thread', () => {
         })
       )
 
-      await waitFor(() => expect(mockSetMcpServerEnabled).toHaveBeenCalledWith('s1', false))
+      await waitFor(() =>
+        expect(mockSetProjectMcpServerOverride).toHaveBeenCalledWith('p1', 's1', false)
+      )
       expect(mockCancelPreparedChat).toHaveBeenCalledWith(`${defaultAgent.configId}\0/work\0`)
       expect(mockPrepareChat).toHaveBeenCalledWith(defaultAgent.configId, '/work', undefined, 'p1')
     } finally {

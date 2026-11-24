@@ -73,6 +73,7 @@ export const PersistenceKeys = {
   windowState: 'window-state',
   // App-wide settings records (shared between devices, merged per field).
   appSettings: 'settings/app',
+  disabledSkills: 'settings/disabled-skills',
   keyboardShortcuts: 'settings/keyboard-shortcuts',
   contextBarSettings: 'settings/context-bar',
   tocSettings: 'settings/toc',
@@ -92,6 +93,7 @@ export const PersistenceKeys = {
   acpAgents: 'acp/agents',
   acpAuthMethods: 'acp/auth-methods',
   acpMcpServers: 'acp/mcp-servers',
+  acpMcpProjectOverrides: 'acp/mcp-project-overrides',
   // Recently @-mentioned files. The bare key is the legacy single-map layout
   // (read once for back-compat); each (project, cwd) partition lives under its
   // own key: the caller passes the URI-encoded composite id.
@@ -159,6 +161,7 @@ export const PersistenceKeys = {
 export const KEY_SCOPES = {
   sharedLww: [
     'settings/app',
+    'settings/disabled-skills',
     'settings/keyboard-shortcuts',
     'settings/context-bar',
     'settings/toc',
@@ -166,7 +169,8 @@ export const KEY_SCOPES = {
     'agents/custom',
     'acp/agents',
     'acp/auth-methods',
-    'acp/mcp-servers'
+    'acp/mcp-servers',
+    'acp/mcp-project-overrides'
   ],
   sharedCas: [
     'ssh/profiles'
